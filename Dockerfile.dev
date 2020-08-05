@@ -1,0 +1,23 @@
+###
+ # docker exec book_server_1 go install && docker stop book_server_1 && docker start book_server_1
+ # //or
+ # docker exec book_server_1 go install &&  docker-compose.exe restart server
+
+# Start from a Debian image with the latest version of Go installed
+# and a workspace (GOPATH) configured at /go.
+FROM golang:alpine
+
+# Copy the local package files to the container's workspace.
+WORKDIR /go/src/book
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN go build -o /go/bin/book github.com/yfedoruck/book/cmd/book
+
+ENTRYPOINT /go/bin/book
+
+# Document that the service listens on port 8080.
+EXPOSE 8080

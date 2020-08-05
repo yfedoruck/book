@@ -1,0 +1,10 @@
+version: "3"
+services:
+  server:
+    build:
+      dockerfile: ./Dockerfile.dev
+    environment:
+      - DEBUG=True
+    container_name: webserver
+    volumes:
+      - .:/go/src/book
