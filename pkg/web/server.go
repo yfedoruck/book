@@ -34,7 +34,7 @@ func (s Server) Start() {
 
 	s.Router.Routes()
 
-	e.Logger.Fatal(e.Start(":1323"))
+	e.Logger.Fatal(e.Start(":" + env.Port()))
 }
 
 type Book struct {
