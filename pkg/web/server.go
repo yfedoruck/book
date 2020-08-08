@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/yfedoruck/book/pkg/env"
+	"github.com/yfedoruck/book/pkg/pg"
 	"html/template"
 )
 
@@ -11,18 +12,20 @@ type Server struct {
 	Port   string
 	Echo   *echo.Echo
 	Router *Router
+	db     *pg.Postgres
 }
 
 func (s Server) Start() {
 	// Echo instance
 	e := s.Echo
+	e.Debug = false
 
 	// Middleware
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
 	t := &Template{
-		templates: template.Must(template.ParseGlob("public/views/*.html")),
+		templates: template.Must(template.ParseGlob(env.BasePath() + "/public/views/*.html")),
 	}
 	e.Renderer = t
 	e.Static("/static", "static")
@@ -43,10 +46,11 @@ type Book struct {
 	Link   string
 }
 
-func NewServer(echo *echo.Echo) *Server {
+func NewServer(echo *echo.Echo, db *pg.Postgres) *Server {
 	var s = &Server{}
 	s.Port = env.Port()
 	s.Echo = echo
-	s.Router = NewRouter(echo)
+	s.db = db
+	s.Router = NewRouter(echo, db)
 	return s
 }

@@ -1,0 +1,36 @@
+# Start from a Debian image with the latest version of Go installed
+# and a workspace (GOPATH) configured at /go.
+FROM golang:alpine AS build-env
+RUN apk add --no-cache git
+
+ENV CGO_ENABLED 0
+# Copy the local package files to the container's workspace.
+WORKDIR /go/src/book
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN go build -gcflags "all=-N -l" -o /go/bin/book github.com/yfedoruck/book/cmd/book
+
+# Compile Delve
+RUN go get github.com/go-delve/delve/cmd/dlv
+
+# Final stage
+FROM alpine:3.7
+# Document that the service listens on port 8080.
+EXPOSE 8080 40000
+
+# Allow delve to run on Alpine based containers.
+RUN apk add --no-cache libc6-compat
+# Uncomment to add bash
+#RUN apk add --no-cache bash
+
+WORKDIR /
+COPY --from=build-env /go/src/book /go/src/book
+COPY --from=build-env /go/bin/book /bin/book
+COPY --from=build-env /go/bin/dlv /bin/dlv
+
+# Run delve
+CMD ["/bin/dlv", "--listen=:40000", "--headless=true", "--api-version=2", "exec", "/bin/book"]

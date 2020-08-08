@@ -1,4 +1,4 @@
-package web
+package cookie
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func writeCookie(c echo.Context, data map[string]string) {
+func Write(c echo.Context, data map[string]string) {
 	for name, value := range data {
 		cookie := new(http.Cookie)
 		cookie.Name = name
@@ -18,7 +18,7 @@ func writeCookie(c echo.Context, data map[string]string) {
 	}
 }
 
-func cookieExists(c echo.Context, key string) bool {
+func Exists(c echo.Context, key string) bool {
 	cookie, err := c.Cookie(key)
 	if err != nil {
 		return false
@@ -26,4 +26,13 @@ func cookieExists(c echo.Context, key string) bool {
 	fmt.Println(cookie.Name)
 	fmt.Println(cookie.Value)
 	return true
+}
+
+func Delete(c echo.Context, key string) {
+	cookie := new(http.Cookie)
+	cookie.Name = key
+	cookie.Value = ""
+	cookie.Path = "/"
+	cookie.MaxAge = -1
+	c.SetCookie(cookie)
 }

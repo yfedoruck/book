@@ -1,0 +1,14 @@
+version: "3"
+services:
+  server:
+    build:
+      dockerfile: ./Dockerfile.debug
+    security_opt:
+      - seccomp:unconfined
+    cap_add:
+      - SYS_PTRACE
+    container_name: webserver
+    environment:
+      - DEBUG=True
+    ports:
+      - "40000:40000"

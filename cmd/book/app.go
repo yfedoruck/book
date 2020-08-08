@@ -20,12 +20,12 @@ func (a *App) Init() {
 	db.Connect()
 	a.db = db
 
-	a.server = web.NewServer(e)
+	a.server = web.NewServer(e, db)
 }
 
 func (a *App) Run() {
 	defer a.db.Close()
-	a.db.Tables()
+	a.db.CreateTables()
 
 	a.server.Start()
 }

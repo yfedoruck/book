@@ -46,8 +46,24 @@ func (p *Postgres) Close() {
 	fail.Check(err)
 }
 
-func (p *Postgres) Tables() {
-	files, err := filepath.Glob(env.BasePath() + "/sql/*.sql")
+func (p *Postgres) CreateTables() {
+	files, err := filepath.Glob(env.BasePath() + "/sql/table/*.sql")
+	fail.Check(err)
+
+	for _, file := range files {
+		data, err := ioutil.ReadFile(file)
+		fail.Check(err)
+
+		stmt, err := p.db.Prepare(string(data))
+		fail.Check(err)
+
+		_, err = stmt.Exec()
+		fail.Check(err)
+	}
+}
+
+func (p *Postgres) DropTables() {
+	files, err := filepath.Glob(env.BasePath() + "/sql/drop/*.sql")
 	fail.Check(err)
 
 	for _, file := range files {

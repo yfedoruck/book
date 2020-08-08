@@ -4,16 +4,23 @@ import (
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/yfedoruck/book/pkg/cookie"
+	"github.com/yfedoruck/book/pkg/crypto"
+	"github.com/yfedoruck/book/pkg/pg"
+	"log"
 	"net/http"
+	"strconv"
 )
 
 type Router struct {
-	e *echo.Echo
+	e  *echo.Echo
+	db *pg.Postgres
 }
 
-func NewRouter(echo *echo.Echo) *Router {
+func NewRouter(echo *echo.Echo, db *pg.Postgres) *Router {
 	return &Router{
-		e: echo,
+		e:  echo,
+		db: db,
 	}
 }
 
@@ -22,28 +29,41 @@ func (r Router) Routes() {
 	r.e.GET("/books", BooksTplHandler)
 	r.e.GET("/register", RegisterTplHandler)
 	r.e.GET("/login", LoginTplHandler)
-	r.e.POST("/inner/register", RegisterHandler)
-	r.e.POST("/inner/login", LoginHandler)
+	r.e.POST("/inner/register", r.RegisterHandler)
+	r.e.POST("/inner/login", r.LoginHandler)
 	r.e.Static("/static", "static")
 	r.e.Static("/book", "data")
 }
 
-func LoginHandler(c echo.Context) error {
+func (r Router) LoginHandler(c echo.Context) error {
 	u := new(User)
 	if err := c.Bind(u); err != nil {
 		return err
 	}
-	if u.Name == "" {
-		return c.Redirect(http.StatusFound, "/register")
+
+	log.Println("user:", u.Name, u.Password)
+	id, encryptedPwd, err := r.db.LoginUser(u.Name)
+
+	if err != nil {
+		log.Println("error:", err)
+		return c.Redirect(http.StatusFound, "/login")
 	}
-	writeCookie(c, map[string]string{
+
+	err = crypto.Compare(encryptedPwd, u.Password)
+	if err != nil {
+		log.Println("error:", err)
+		return c.Redirect(http.StatusFound, "/login")
+	}
+
+	cookie.Write(c, map[string]string{
 		"username": u.Name,
+		"id":       strconv.Itoa(id),
 	})
 	return c.Redirect(http.StatusFound, "/books")
 }
 
 func LoginTplHandler(c echo.Context) error {
-	if cookieExists(c, "username") {
+	if cookie.Exists(c, "username") {
 		return c.Redirect(http.StatusFound, "/books")
 	}
 	return c.Render(http.StatusOK, "login", map[string]interface{}{
@@ -53,7 +73,7 @@ func LoginTplHandler(c echo.Context) error {
 }
 
 func RootHandler(c echo.Context) error {
-	if !cookieExists(c, "username") {
+	if !cookie.Exists(c, "username") {
 		return c.Redirect(http.StatusFound, "/login")
 	}
 
@@ -69,7 +89,7 @@ func RootHandler(c echo.Context) error {
 
 func BooksTplHandler(c echo.Context) error {
 
-	if !cookieExists(c, "username") {
+	if !cookie.Exists(c, "username") {
 		return c.Redirect(http.StatusFound, "/login")
 	}
 
@@ -83,8 +103,8 @@ func BooksTplHandler(c echo.Context) error {
 	})
 }
 
-func RegisterHandler(c echo.Context) error {
-	if cookieExists(c, "username") {
+func (r Router) RegisterHandler(c echo.Context) error {
+	if cookie.Exists(c, "username") {
 		return c.Redirect(http.StatusFound, "/books")
 	}
 
@@ -95,13 +115,23 @@ func RegisterHandler(c echo.Context) error {
 	if u.Name == "" {
 		return c.Redirect(http.StatusFound, "/register")
 	}
-	writeCookie(c, map[string]string{
+	cookie.Write(c, map[string]string{
 		"username": u.Name,
+	})
+
+	username := c.FormValue("username")
+	password := c.FormValue("password")
+	email := c.FormValue("email")
+
+	id := r.db.RegisterUser(username, crypto.Generate(password), email)
+
+	cookie.Write(c, map[string]string{
+		"username": u.Name,
+		"id":       strconv.Itoa(id),
 	})
 
 	return c.Redirect(http.StatusFound, "/books")
 	//return  c.String(http.StatusOK, name)
-	//return  c.JSON(http.StatusOK, u)
 	//return  c.JSON(http.StatusOK, u)
 }
 
@@ -113,7 +143,7 @@ func RegisterMiddleware() echo.MiddlewareFunc {
 }
 
 func LoginMiddleware() echo.MiddlewareFunc {
-	//if cookieExists(c, "username") {
+	//if cookie.Exists(c, "username") {
 	//	return c.Redirect(http.StatusFound, "/books")
 	//}
 	return middleware.KeyAuth(func(username string, c echo.Context) (bool, error) {
@@ -133,8 +163,9 @@ func RegisterTplHandler(c echo.Context) error {
 	})
 }
 
+//TODO: Dangerous zone. Wrong `json:key` is hard to find.
 type User struct {
 	Name     string `json:"username" form:"username" query:"username"`
 	Email    string `json:"email" form:"email" query:"email"`
-	Password string `json:"email" form:"email" query:"email"`
+	Password string `json:"password" form:"password" query:"password"`
 }

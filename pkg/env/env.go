@@ -1,21 +1,22 @@
 package env
 
 import (
-	"log"
 	"os"
-	"path/filepath"
-	"runtime"
 )
 
+// Set all path as absolute, because compiled program can be in other directory than source files
+// and so runtime.Caller will get wrong path.
 func BasePath() string {
-	_, b, _, ok := runtime.Caller(0)
-	if !ok {
-		log.Panic("Caller error")
-	}
-	env := filepath.Dir(b)
-	pkg := filepath.Dir(env)
-	app := filepath.Dir(pkg)
-	return app
+	//_, b, _, ok := runtime.Caller(0)
+	//if !ok {
+	//	log.Panic("Caller error")
+	//}
+	//env := filepath.Dir(b)
+	//pkg := filepath.Dir(env)
+	//app := filepath.Dir(pkg)
+	//return app
+
+	return "/go/src/book"
 }
 
 func Domain() string {
