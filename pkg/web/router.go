@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/yfedoruck/book/pkg/cookie"
 	"github.com/yfedoruck/book/pkg/crypto"
+	"github.com/yfedoruck/book/pkg/midware"
 	"github.com/yfedoruck/book/pkg/pg"
 	"log"
 	"net/http"
@@ -29,13 +30,15 @@ func (r Router) Routes() {
 	r.e.GET("/books", BooksTplHandler)
 	r.e.GET("/register", RegisterTplHandler)
 	r.e.GET("/login", LoginTplHandler)
-	r.e.POST("/inner/register", r.RegisterHandler)
-	r.e.POST("/inner/login", r.LoginHandler)
+	r.e.GET("/logout", LogoutHandler)
+	r.e.POST("/inner/register", r.RegisterHandler, midware.Register)
+	r.e.POST("/inner/login", r.LoginHandler, midware.Login)
 	r.e.Static("/static", "static")
 	r.e.Static("/book", "data")
 }
 
 func (r Router) LoginHandler(c echo.Context) error {
+	log.Println("call LoginHandler")
 	u := new(User)
 	if err := c.Bind(u); err != nil {
 		return err
@@ -72,6 +75,13 @@ func LoginTplHandler(c echo.Context) error {
 	})
 }
 
+func LogoutHandler(c echo.Context) error {
+	if cookie.Exists(c, "username") {
+		cookie.Delete(c, "username")
+	}
+	return c.Redirect(http.StatusFound, "/login")
+}
+
 func RootHandler(c echo.Context) error {
 	if !cookie.Exists(c, "username") {
 		return c.Redirect(http.StatusFound, "/login")
@@ -104,6 +114,7 @@ func BooksTplHandler(c echo.Context) error {
 }
 
 func (r Router) RegisterHandler(c echo.Context) error {
+	log.Println("call RegisterHandler")
 	if cookie.Exists(c, "username") {
 		return c.Redirect(http.StatusFound, "/books")
 	}
@@ -123,6 +134,7 @@ func (r Router) RegisterHandler(c echo.Context) error {
 	password := c.FormValue("password")
 	email := c.FormValue("email")
 
+	fmt.Println("register user here")
 	id := r.db.RegisterUser(username, crypto.Generate(password), email)
 
 	cookie.Write(c, map[string]string{
@@ -137,7 +149,6 @@ func (r Router) RegisterHandler(c echo.Context) error {
 
 func RegisterMiddleware() echo.MiddlewareFunc {
 	return middleware.KeyAuth(func(username string, c echo.Context) (bool, error) {
-		fmt.Println(username)
 		return username == "qwe", nil
 	})
 }
@@ -147,7 +158,6 @@ func LoginMiddleware() echo.MiddlewareFunc {
 	//	return c.Redirect(http.StatusFound, "/books")
 	//}
 	return middleware.KeyAuth(func(username string, c echo.Context) (bool, error) {
-		fmt.Println(username)
 		return username == "", nil
 	})
 }
@@ -156,10 +166,6 @@ func RegisterTplHandler(c echo.Context) error {
 	return c.Render(http.StatusOK, "register", map[string]interface{}{
 		"Title": "Registration",
 		"Css":   "/static/css/style.css",
-		"Books": []Book{
-			{"Author 1", "Book 1", "book/123.txt"},
-			{"Author 2", "Book 2", "book/456.txt"},
-		},
 	})
 }
 

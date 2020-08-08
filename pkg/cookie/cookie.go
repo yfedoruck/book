@@ -1,7 +1,6 @@
 package cookie
 
 import (
-	"fmt"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"time"
@@ -19,12 +18,10 @@ func Write(c echo.Context, data map[string]string) {
 }
 
 func Exists(c echo.Context, key string) bool {
-	cookie, err := c.Cookie(key)
+	_, err := c.Cookie(key)
 	if err != nil {
 		return false
 	}
-	fmt.Println(cookie.Name)
-	fmt.Println(cookie.Value)
 	return true
 }
 
