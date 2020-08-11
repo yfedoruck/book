@@ -8,6 +8,7 @@ import (
 	"github.com/yfedoruck/book/pkg/crypto"
 	"github.com/yfedoruck/book/pkg/midware"
 	"github.com/yfedoruck/book/pkg/pg"
+	"github.com/yfedoruck/book/pkg/user"
 	"log"
 	"net/http"
 	"strconv"
@@ -39,7 +40,7 @@ func (r Router) Routes() {
 
 func (r Router) LoginHandler(c echo.Context) error {
 	log.Println("call LoginHandler")
-	u := new(User)
+	u := user.New()
 	if err := c.Bind(u); err != nil {
 		return err
 	}
@@ -171,6 +172,7 @@ func RegisterTplHandler(c echo.Context) error {
 
 //TODO: Dangerous zone. Wrong `json:key` is hard to find.
 type User struct {
+	Id       int
 	Name     string `json:"username" form:"username" query:"username"`
 	Email    string `json:"email" form:"email" query:"email"`
 	Password string `json:"password" form:"password" query:"password"`

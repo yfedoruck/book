@@ -1,10 +1,11 @@
 package pg
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/lib/pq"
 	"github.com/yfedoruck/book/pkg/env"
 	"github.com/yfedoruck/book/pkg/fail"
@@ -17,19 +18,25 @@ import (
 )
 
 type Postgres struct {
-	db *sql.DB
+	db *gorm.DB
+}
+
+func NewPostgres() *Postgres {
+	p := new(Postgres)
+	//p.db.SingularTable(true)
+	return p
 }
 
 func (p *Postgres) Connect() {
 	dbConf := Config()
-	dbInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", dbConf.Host, dbConf.Port, dbConf.User, dbConf.Password, dbConf.Name)
+	dbInfo := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable", dbConf.Host, dbConf.Port, dbConf.User, dbConf.Name, dbConf.Password)
 	fmt.Println(dbInfo)
 	var err error
-	p.db, err = sql.Open("postgres", dbInfo)
+	p.db, err = gorm.Open("postgres", dbInfo)
 	fail.Check(err)
 
 	for i, connected := 0, false; connected == false && i < 4; i++ {
-		err = p.db.Ping()
+		err = p.db.DB().Ping()
 		if err == nil {
 			connected = true
 			return
@@ -54,7 +61,7 @@ func (p *Postgres) CreateTables() {
 		data, err := ioutil.ReadFile(file)
 		fail.Check(err)
 
-		stmt, err := p.db.Prepare(string(data))
+		stmt, err := p.db.DB().Prepare(string(data))
 		fail.Check(err)
 
 		_, err = stmt.Exec()
@@ -70,7 +77,7 @@ func (p *Postgres) DropTables() {
 		data, err := ioutil.ReadFile(file)
 		fail.Check(err)
 
-		stmt, err := p.db.Prepare(string(data))
+		stmt, err := p.db.DB().Prepare(string(data))
 		fail.Check(err)
 
 		_, err = stmt.Exec()
@@ -78,11 +85,10 @@ func (p *Postgres) DropTables() {
 	}
 }
 
-
 func (p *Postgres) RegisterUser(username string, password string, email string) int {
 
 	var lastInsertId int
-	err := p.db.QueryRow("INSERT into account (email,password,username) VALUES ($1,$2,$3) returning id;", email, password, username).Scan(&lastInsertId)
+	err := p.db.DB().QueryRow("INSERT into account (email,password,username) VALUES ($1,$2,$3) returning id;", email, password, username).Scan(&lastInsertId)
 	fail.Check(err)
 
 	return lastInsertId
@@ -90,7 +96,7 @@ func (p *Postgres) RegisterUser(username string, password string, email string) 
 
 func (p *Postgres) LoginUser(username string) (int, string, error) {
 
-	rows, err := p.db.Query("SELECT id, password FROM account WHERE username = $1 limit 1;", username)
+	rows, err := p.db.DB().Query("SELECT id, password FROM account WHERE username = $1 limit 1;", username)
 	fail.Check(err)
 
 	if rows.Next() == false {
@@ -107,7 +113,7 @@ func (p *Postgres) LoginUser(username string) (int, string, error) {
 func (p Postgres) IsUniqueUsername(username string) bool {
 
 	// strings.Contains(err, "account_username_key")
-	rows, err := p.db.Query("SELECT id FROM account WHERE username = $1 limit 1;", username)
+	rows, err := p.db.DB().Query("SELECT id FROM account WHERE username = $1 limit 1;", username)
 	fail.Check(err)
 
 	return rows.Next() == false
@@ -115,7 +121,7 @@ func (p Postgres) IsUniqueUsername(username string) bool {
 
 func (p Postgres) IsUniqueEmail(email string) bool {
 
-	rows, err := p.db.Query("SELECT id FROM account WHERE email = $1 limit 1;", email)
+	rows, err := p.db.DB().Query("SELECT id FROM account WHERE email = $1 limit 1;", email)
 	fail.Check(err)
 
 	return rows.Next() == false

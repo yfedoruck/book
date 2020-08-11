@@ -15,12 +15,13 @@ type App struct {
 func (a *App) Init() {
 	e := echo.New()
 	a.framework = e
+	a.framework.Debug = false
 
-	db := &pg.Postgres{}
+	db := pg.NewPostgres()
 	db.Connect()
 	a.db = db
 
-	a.server = web.NewServer(e, db)
+	a.server = web.NewServer(a.framework, a.db)
 }
 
 func (a *App) Run() {

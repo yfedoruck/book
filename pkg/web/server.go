@@ -18,10 +18,9 @@ type Server struct {
 func (s Server) Start() {
 	// Echo instance
 	e := s.Echo
-	e.Debug = false
 
 	// Middleware
-	e.Use(middleware.Logger())
+	//e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
 	t := &Template{
