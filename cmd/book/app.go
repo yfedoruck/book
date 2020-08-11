@@ -17,9 +17,7 @@ func (a *App) Init() {
 	a.framework = e
 	a.framework.Debug = false
 
-	db := pg.NewPostgres()
-	db.Connect()
-	a.db = db
+	a.db = pg.NewPostgres()
 
 	a.server = web.NewServer(a.framework, a.db)
 }

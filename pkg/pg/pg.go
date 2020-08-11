@@ -23,6 +23,7 @@ type Postgres struct {
 
 func NewPostgres() *Postgres {
 	p := new(Postgres)
+	p.Connect()
 	//p.db.SingularTable(true)
 	return p
 }
@@ -51,6 +52,10 @@ func (p *Postgres) Connect() {
 func (p *Postgres) Close() {
 	err := p.db.Close()
 	fail.Check(err)
+}
+
+func (p *Postgres) Get() *gorm.DB {
+	return p.db
 }
 
 func (p *Postgres) CreateTables() {

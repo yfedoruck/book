@@ -40,13 +40,13 @@ func (r Router) Routes() {
 
 func (r Router) LoginHandler(c echo.Context) error {
 	log.Println("call LoginHandler")
-	u := user.New()
+	u := user.New(r.db)
 	if err := c.Bind(u); err != nil {
 		return err
 	}
 
-	log.Println("user:", u.Name, u.Password)
-	id, encryptedPwd, err := r.db.LoginUser(u.Name)
+	log.Println("user:", u.Username, u.Password)
+	id, encryptedPwd, err := r.db.LoginUser(u.Username)
 
 	if err != nil {
 		log.Println("error:", err)
@@ -60,7 +60,7 @@ func (r Router) LoginHandler(c echo.Context) error {
 	}
 
 	cookie.Write(c, map[string]string{
-		"username": u.Name,
+		"username": u.Username,
 		"id":       strconv.Itoa(id),
 	})
 	return c.Redirect(http.StatusFound, "/books")
@@ -120,26 +120,24 @@ func (r Router) RegisterHandler(c echo.Context) error {
 		return c.Redirect(http.StatusFound, "/books")
 	}
 
-	u := user.New()
+	u := user.New(r.db)
 	if err := c.Bind(u); err != nil {
 		return err
 	}
-	if u.Name == "" {
+	if u.Username == "" {
 		return c.Redirect(http.StatusFound, "/register")
 	}
 	cookie.Write(c, map[string]string{
-		"username": u.Name,
+		"username": u.Username,
 	})
 
-	username := c.FormValue("username")
-	password := c.FormValue("password")
-	email := c.FormValue("email")
-
 	fmt.Println("register user here")
-	id := r.db.RegisterUser(username, crypto.Generate(password), email)
+	u.Password = crypto.Generate(c.FormValue("password"))
+	//id := r.db.RegisterUser(username, crypto.Generate(password), email)
+	id := u.Register()
 
 	cookie.Write(c, map[string]string{
-		"username": u.Name,
+		"username": u.Username,
 		"id":       strconv.Itoa(id),
 	})
 
