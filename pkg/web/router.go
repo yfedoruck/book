@@ -120,7 +120,7 @@ func (r Router) RegisterHandler(c echo.Context) error {
 		return c.Redirect(http.StatusFound, "/books")
 	}
 
-	u := new(User)
+	u := user.New()
 	if err := c.Bind(u); err != nil {
 		return err
 	}
