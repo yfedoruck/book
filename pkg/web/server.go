@@ -2,7 +2,6 @@ package web
 
 import (
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"github.com/yfedoruck/book/pkg/env"
 	"github.com/yfedoruck/book/pkg/pg"
 	"html/template"
@@ -21,7 +20,7 @@ func (s Server) Start() {
 
 	// Middleware
 	//e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
+	//e.Use(middleware.Recover())
 
 	t := &Template{
 		templates: template.Must(template.ParseGlob(env.BasePath() + "/public/views/*.html")),

@@ -40,28 +40,28 @@ func (r Router) Routes() {
 
 func (r Router) LoginHandler(c echo.Context) error {
 	log.Println("call LoginHandler")
-	u := user.New(r.db)
-	if err := c.Bind(u); err != nil {
+	formData := user.New(r.db)
+	if err := c.Bind(&formData); err != nil {
 		return err
 	}
 
-	log.Println("user:", u.Username, u.Password)
-	id, encryptedPwd, err := r.db.LoginUser(u.Username)
+	log.Println("user:", formData)
 
-	if err != nil {
-		log.Println("error:", err)
+	u := formData
+	if u.Login() == nil {
+		log.Println("error: user not found - ", formData)
 		return c.Redirect(http.StatusFound, "/login")
 	}
 
-	err = crypto.Compare(encryptedPwd, u.Password)
+	err := crypto.Compare(u.Password, formData.Password)
 	if err != nil {
-		log.Println("error:", err)
+		log.Println("error:", err, u, formData)
 		return c.Redirect(http.StatusFound, "/login")
 	}
 
 	cookie.Write(c, map[string]string{
 		"username": u.Username,
-		"id":       strconv.Itoa(id),
+		"id":       strconv.Itoa(u.Id),
 	})
 	return c.Redirect(http.StatusFound, "/books")
 }
@@ -121,7 +121,7 @@ func (r Router) RegisterHandler(c echo.Context) error {
 	}
 
 	u := user.New(r.db)
-	if err := c.Bind(u); err != nil {
+	if err := c.Bind(&u); err != nil {
 		return err
 	}
 	if u.Username == "" {

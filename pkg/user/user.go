@@ -13,10 +13,10 @@ type Data struct {
 	Password string `json:"password" form:"password" query:"password"`
 }
 
-func New(db *pg.Postgres) *Data {
-	d := new(Data)
-	d.db = db.Get()
-	return d
+func New(db *pg.Postgres) Data {
+	return Data{
+		db: db.Get(),
+	}
 }
 
 func (Data) TableName() string {
@@ -28,4 +28,8 @@ func (u *Data) Register() int {
 	u.db.Create(u).Scan(&lastInsertId)
 
 	return lastInsertId
+}
+
+func (u *Data) Login() *gorm.DB {
+	return u.db.Where("username=?", u.Username).First(u)
 }
